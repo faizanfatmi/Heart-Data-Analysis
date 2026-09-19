@@ -170,3 +170,24 @@ Probability (Disease): 16.52%
 ## Disclaimer
 
 This project is developed for educational and machine learning purposes. It is not intended to replace professional medical diagnosis or medical advice.
+
+
+---
+
+## Author
+
+**Faizan Fatmi**
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+Copyright (c) 2026 Faizan Fatmi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files, to use, copy, modify,
+merge, publish, distribute, sublicense, and/or sell copies of the software,
+subject to the conditions of the MIT License.
+
