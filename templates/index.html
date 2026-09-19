@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-title">Heart Disease</div>
+            <div class="brand-title">Prediction</div>
+            <div class="brand-subtitle">Machine Learning Project</div>
+        </div>
+
+        <nav class="nav">
+            <a class="nav-item {% if page == 'home' %}active{% endif %}" href="/">Home</a>
+            <a class="nav-item {% if page == 'eda' %}active{% endif %}" href="/eda">EDA</a>
+            <a class="nav-item {% if page == 'models' %}active{% endif %}" href="/model-comparison">Model Comparison</a>
+            <a class="nav-item {% if page == 'confusion' %}active{% endif %}" href="/confusion-matrix">Confusion Matrix</a>
+            <a class="nav-item {% if page == 'roc' %}active{% endif %}" href="/roc-curve">ROC Curve</a>
+            <a class="nav-item {% if page == 'explain' %}active{% endif %}" href="/explainability">Explainability</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            Heart Disease Prediction<br>
+            Machine Learning Dashboard<br>
+            v1.0.0
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <form action="/search" method="get" class="search-form">
+                <input class="search-box" type="text" name="q" value="{{ query|default('') }}" placeholder="Search patient details..." autocomplete="off">
+                <button type="submit" class="search-button">Search</button>
+            </form>
+            <div class="top-date">Heart Disease Prediction</div>
+        </header>
+
+        {% if page == 'home' %}
+        <section class="page-head">
+            <h1>Heart Disease Prediction</h1>
+            <p>Machine Learning based prediction and analysis</p>
+        </section>
+
+        <section class="kpi-grid">
+            <div class="kpi-card pink"><span>Dataset Records</span><strong>{{ data_rows }}</strong><small>Total Patients</small></div>
+            <div class="kpi-card blue"><span>Input Features</span><strong>{{ feature_count }}</strong><small>Model Parameters</small></div>
+            <div class="kpi-card green"><span>Trained Models</span><strong>{{ model_count }}</strong><small>ML Algorithms</small></div>
+            <div class="kpi-card purple"><span>Best ROC-AUC</span><strong>{{ '%.2f'|format(metrics.roc_auc) }}</strong><small>{{ metrics.model }}</small></div>
+        </section>
+
+        <section class="content-grid">
+            <div class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Patient Details</h2>
+                        <p>Enter patient information to predict the risk of heart disease.</p>
+                    </div>
+                </div>
+                <form action="/predict" method="post" class="form-grid">
+                    <label>Age<input type="number" name="age" min="1" max="120" value="{{ form.get('age','50') if form else '50' }}"></label>
+                    <label>Sex<select name="sex"><option value="M">M</option><option value="F">F</option></select></label>
+                    <label>Chest Pain Type<select name="chest_pain"><option>ASY</option><option>ATA</option><option>NAP</option><option>TA</option></select></label>
+                    <label>Resting Blood Pressure<input type="number" name="resting_bp" value="{{ form.get('resting_bp','120') if form else '120' }}"></label>
+                    <label>Cholesterol<input type="number" name="cholesterol" value="{{ form.get('cholesterol','200') if form else '200' }}"></label>
+                    <label>Fasting Blood Sugar > 120 mg/dl<select name="fasting_bs"><option value="0">0</option><option value="1">1</option></select></label>
+                    <label>Resting ECG<select name="resting_ecg"><option>Normal</option><option>ST</option><option>LVH</option></select></label>
+                    <label>Maximum Heart Rate<input type="number" name="max_hr" value="{{ form.get('max_hr','150') if form else '150' }}"></label>
+                    <label>Exercise Induced Angina<select name="exercise_angina"><option>N</option><option>Y</option></select></label>
+                    <label>Oldpeak<input type="number" step="0.1" name="oldpeak" value="{{ form.get('oldpeak','1.0') if form else '1.0' }}"></label>
+                    <label>ST Slope<select name="st_slope"><option>Up</option><option>Flat</option><option>Down</option></select></label>
+                    <div class="form-action"><button type="submit">Predict</button></div>
+                </form>
+            </div>
+
+            <div class="panel result-panel">
+                <h2>Prediction Result</h2>
+                {% if prediction and prediction.error %}
+                    <div class="result high"><strong>Prediction Error</strong><p>{{ prediction.error }}</p></div>
+                {% elif prediction %}
+                    {% if prediction.class == 1 %}
+                    <div class="result high"><strong>High Risk of Heart Disease</strong><p>Predicted probability: {{ '%.2f'|format(prediction.probability * 100) }}%</p></div>
+                    {% else %}
+                    <div class="result low"><strong>Low Risk of Heart Disease</strong><p>Predicted probability: {{ '%.2f'|format(prediction.probability * 100) }}%</p></div>
+                    {% endif %}
+                    <div class="prob-grid">
+                        <div class="prob-card"><span>Probability (No Disease)</span><strong>{{ '%.2f'|format(prediction.low_probability * 100) }}%</strong><div class="bar"><i style="width: {{ prediction.low_probability * 100 }}%"></i></div></div>
+                        <div class="prob-card"><span>Probability (Disease)</span><strong>{{ '%.2f'|format(prediction.probability * 100) }}%</strong><div class="bar red"><i style="width: {{ prediction.probability * 100 }}%"></i></div></div>
+                    </div>
+                {% else %}
+                    <div class="empty-result">Enter patient details and click Predict.</div>
+                {% endif %}
+                <div class="summary">
+                    <h3>Model Information</h3>
+                    <div><span>Final model</span><strong>{{ metrics.model }}</strong></div>
+                    <div><span>ROC-AUC</span><strong>{{ '%.3f'|format(metrics.roc_auc) }}</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel performance">
+            <div class="panel-head">
+                <div><h2>Model Performance</h2><p>Evaluation metrics of the trained model.</p></div>
+            </div>
+            <div class="metric-grid">
+                <div><span>Accuracy</span><strong>{{ '%.2f%%'|format(metrics.accuracy * 100) }}</strong></div>
+                <div><span>Precision</span><strong>{{ '%.2f%%'|format(metrics.precision * 100) }}</strong></div>
+                <div><span>Recall</span><strong>{{ '%.2f%%'|format(metrics.recall * 100) }}</strong></div>
+                <div><span>F1 Score</span><strong>{{ '%.2f%%'|format(metrics.f1 * 100) }}</strong></div>
+                <div><span>ROC-AUC</span><strong>{{ '%.2f%%'|format(metrics.roc_auc * 100) }}</strong></div>
+            </div>
+        </section>
+
+        {% elif page == 'search' %}
+        <section class="page-head"><h1>Patient Search</h1><p>Search the heart disease dataset using patient details.</p></section>
+        <section class="panel">
+            <h2>Search Results</h2>
+            {% if query %}
+                <p class="muted">{{ result_count }} record(s) found for <strong>{{ query }}</strong>.</p>
+                {% if results %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                {% for key in results[0].keys() %}<th>{{ key }}</th>{% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                {% for value in row.values() %}<td>{{ value }}</td>{% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="empty-result">No matching patient record found.</div>
+                {% endif %}
+            {% else %}
+                <div class="empty-result">Enter a patient detail such as age, sex, chest pain type, blood pressure, or cholesterol.</div>
+            {% endif %}
+        </section>
+
+        {% elif page == 'eda' %}
+        <section class="page-head"><h1>Exploratory Data Analysis</h1><p>Explore the dataset and understand the main features.</p></section>
+        <section class="kpi-grid three">
+            <div class="kpi-card blue"><span>Rows</span><strong>{{ rows }}</strong></div>
+            <div class="kpi-card green"><span>Columns</span><strong>{{ cols }}</strong></div>
+            <div class="kpi-card purple"><span>Missing Values</span><strong>{{ missing }}</strong></div>
+        </section>
+        <section class="panel"><h2>Dataset Preview</h2><div class="table-wrap">{{ data_preview|safe }}</div></section>
+        <section class="content-grid single">
+            <div class="panel"><h2>Numeric Feature Distribution</h2><select id="edaFeature"><option>Age</option><option>RestingBP</option><option>Cholesterol</option><option>MaxHR</option><option>Oldpeak</option></select><canvas id="edaChart"></canvas></div>
+        </section>
+        <script>
+        async function loadEDA() {
+            const feature = document.getElementById('edaFeature').value;
+            const res = await fetch('/api/eda-chart?feature=' + encodeURIComponent(feature));
+            const d = await res.json();
+            const bins = {};
+            d.values.forEach(v => { const b = Math.floor(v / 10) * 10; bins[b] = (bins[b] || 0) + 1; });
+            const labels = Object.keys(bins).sort((a,b)=>Number(a)-Number(b));
+            if (window.edaChartObj) window.edaChartObj.destroy();
+            window.edaChartObj = new Chart(document.getElementById('edaChart'), {type:'bar', data:{labels:labels, datasets:[{label:d.feature, data:labels.map(x=>bins[x]), backgroundColor:'#2d8cf0', borderRadius:7}]}, options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+        }
+        document.getElementById('edaFeature').addEventListener('change', loadEDA); loadEDA();
+        </script>
+
+        {% elif page == 'models' %}
+        <section class="page-head"><h1>Model Comparison</h1><p>Compare the performance of all trained machine learning models.</p></section>
+        <section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1 Score</th><th>ROC AUC</th><th>CV ROC AUC</th></tr></thead><tbody>{% for row in comparison %}<tr><td>{{ row.Model }}</td><td>{{ '%.3f'|format(row.Accuracy) }}</td><td>{{ '%.3f'|format(row.Precision) }}</td><td>{{ '%.3f'|format(row.Recall) }}</td><td>{{ '%.3f'|format(row['F1 Score']) }}</td><td>{{ '%.3f'|format(row['ROC AUC']) }}</td><td>{{ '%.3f'|format(row['CV ROC AUC']) }}</td></tr>{% endfor %}</tbody></table></div></section>
+        <section class="panel"><h2>ROC-AUC Comparison</h2><canvas id="modelChart"></canvas></section>
+        <script>
+        const modelRows = {{ comparison|tojson }};
+        new Chart(document.getElementById('modelChart'), {type:'bar', data:{labels:modelRows.map(r=>r.Model), datasets:[{label:'ROC-AUC',data:modelRows.map(r=>r['ROC AUC']),backgroundColor:'#2d8cf0',borderRadius:8},{label:'CV ROC-AUC',data:modelRows.map(r=>r['CV ROC AUC']),backgroundColor:'#71c9a2',borderRadius:8}]},options:{scales:{y:{min:0,max:1}}}});
+        </script>
+
+        {% elif page == 'confusion' %}
+        <section class="page-head"><h1>Confusion Matrix</h1><p>Actual and predicted classification results for the final model.</p></section>
+        <section class="panel center"><div class="matrix"><div></div><div class="axis">Predicted 0</div><div class="axis">Predicted 1</div><div class="axis vertical">Actual 0</div><div class="cell c1">{{ matrix[0][0] }}</div><div class="cell c2">{{ matrix[0][1] }}</div><div class="axis vertical">Actual 1</div><div class="cell c3">{{ matrix[1][0] }}</div><div class="cell c4">{{ matrix[1][1] }}</div></div></section>
+
+        {% elif page == 'roc' %}
+        <section class="page-head"><h1>ROC Curve</h1><p>Receiver Operating Characteristic curve of the final model.</p></section>
+        <section class="panel"><div class="auc">ROC-AUC <strong>{{ '%.3f'|format(auc) }}</strong></div><canvas id="rocChart"></canvas></section>
+        <script>
+        new Chart(document.getElementById('rocChart'), {type:'line',data:{datasets:[{label:'Final Model',data:{{ fpr|tojson }}.map((x,i)=>({x:x,y:{{ tpr|tojson }}[i]})),borderColor:'#2d8cf0',backgroundColor:'transparent',pointRadius:0},{label:'Random',data:[{x:0,y:0},{x:1,y:1}],borderColor:'#aab5c5',borderDash:[6,6],pointRadius:0}]},options:{parsing:false,scales:{x:{type:'linear',min:0,max:1,title:{display:true,text:'False Positive Rate'}},y:{min:0,max:1,title:{display:true,text:'True Positive Rate'}}}}});
+        </script>
+
+        {% elif page == 'explain' %}
+        <section class="page-head"><h1>Explainability</h1><p>Feature importance for understanding model predictions.</p></section>
+        <section class="panel"><h2>Feature Importance</h2><div class="importance-list">{% for item in importance[:12] %}<div class="importance-row"><div class="importance-label"><span>{{ item.name }}</span><strong>{{ '%.3f'|format(item.value) }}</strong></div><div class="importance-bar"><i style="width: {{ (item.value / importance[0].value * 100) if importance[0].value else 0 }}%"></i></div></div>{% endfor %}</div></section>
+        <section class="panel"><h2>SHAP</h2><p class="muted">The trained explainability model is stored with the project artifacts. The feature importance above gives a quick dashboard view.</p></section>
+        {% endif %}
+    </main>
+</div>
+</body>
+</html>
